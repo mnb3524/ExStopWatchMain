@@ -1,0 +1,10 @@
+name: ExStopWatch
+version: '${project.version}'
+main: manabu.bc_tg2.exstopwatch.ExStopWatch
+api-version: 1.17
+description: ストップウォッチをカウントダウン用に拡張
+commands:
+  stopwatch:
+    description: Commands to start, pause and stop the stopwatch timer.
+    aliases:
+      - st
