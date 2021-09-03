@@ -38,8 +38,10 @@ public class StopwatchCommands implements CommandExecutor {
                 exStopWatch.offsetSeconds(s, args);
             } else if (args[0].equalsIgnoreCase("message")) {
                 exStopWatch.setMessage(s, args);
-            } else if (args[0].equalsIgnoreCase("endsec")) {
-                exStopWatch.setEndSec(s, args);
+//            } else if (args[0].equalsIgnoreCase("endsec")) {
+//                exStopWatch.setEndSec(s, args);
+            } else if (args[0].equalsIgnoreCase("startsec")) {
+                exStopWatch.setStartSec(s, args);
             }
         } else {
             s.sendMessage(ChatColor.RED + "Do /[stopwatch|st] pause/stop/start/help/item/message/offset/endsec");

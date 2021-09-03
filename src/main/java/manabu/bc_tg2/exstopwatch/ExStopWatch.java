@@ -13,6 +13,8 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.apache.commons.lang.time.StopWatch;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import java.io.File;
 import java.io.IOException;
@@ -22,10 +24,12 @@ public final class ExStopWatch extends JavaPlugin {
 
     private boolean isRunning, isPaused;
     private StopWatch stopWatch;
+    private Timer timer;
     private File configFile;
     private YamlConfiguration config;
     private String timeMessage;
     private int offsetSec;
+    private int startSec = 70;
     private int endSec = Integer.MAX_VALUE;
     private Actionbar actionbar;
     private UUID curPlayer;
@@ -57,17 +61,21 @@ public final class ExStopWatch extends JavaPlugin {
             public void run() {
                 if (isRunning) {
 
-                    int totalSecs = (int) (stopWatch.getTime()/1000.0) + offsetSec;
-                    int hours = (int)(totalSecs/3600);
-                    int minutes = (int)((totalSecs % 3600) / 60);
-                    int seconds = totalSecs % 60;
+//                  int totalSecs = (int) (stopWatch.getTime()/1000.0) + offsetSec;
+                    int totalSecs = (int) ((stopWatch.getTime())/1000.0) + offsetSec;
+                    int countdownSecs = startSec - totalSecs;
+                    int hours = (int)(countdownSecs/3600);
+                    int minutes = (int)((countdownSecs % 3600) / 60);
+                    int seconds = countdownSecs % 60;
+
                     String time;
                     if (hours > 0) {
                         time = String.format("%01d:%02d:%02d", hours, minutes, seconds);
                     } else {
-                        time = String.format("%01d:%02d", minutes, seconds);
+                        time = String.format("%01d:%02d", minutes, seconds,startSec);
                     }
                     String timerMessage = Util.replace(timeMessage, time);
+
                     //System.out.println(timerMessage);
                     if (curPlayer != null) {
                         if (Bukkit.getOfflinePlayer(curPlayer).isOnline()) {
@@ -88,7 +96,16 @@ public final class ExStopWatch extends JavaPlugin {
                             }
                         }
                     }
-                    if (totalSecs >= endSec) {
+                    if (totalSecs >= endSec || countdownSecs <= 0) {
+                        if(countdownSecs == 0) {
+                            for (Player p : Bukkit.getOnlinePlayers()) {
+                                p.resetTitle();
+                                p.sendTitle("終了", "そこまで！", 20, 50, 20);
+                                p.playSound(p.getLocation(),"entity.generic.explode",(float)1.0,(float)1.0);
+                                p.playSound(p.getLocation(),"random.explode",(float)1.0,(float)1.0);
+                            }
+                        }
+
                         stopStopwatch(Bukkit.getConsoleSender());
                     }
                 }
@@ -107,7 +124,8 @@ public final class ExStopWatch extends JavaPlugin {
                 "/st item will give you items to use the 3 time control commands\n" +
                 "/st message [message] will set the message of the time, make sure to include {0} in it which represents time\n" +
                 "/st offset [seconds] will add to the offset seconds by the amount given until next stopwatch reset\n" +
-                "/st endsec [seconds] will set the end seconds to the amount given so that the timer will stop at that time, must be set after every reset");
+                "/st endsec 現在無効\n" +
+                "/st startsec タイマー開始秒数指定(デフォルトは1:10)");
     }
 
     public void startStopwatch() {
@@ -127,7 +145,7 @@ public final class ExStopWatch extends JavaPlugin {
 
     public void showStopwatch(CommandSender s, String[] args) {
         if (args.length == 1) {
-            s.sendMessage(ChatColor.RED + "Specify a player, like this /st show [playername]");
+            s.sendMessage(ChatColor.RED + "特定のプレイヤーをこのように指定してください。 /st show [playername]");
             return;
         }
         String playername = args[1];
@@ -137,12 +155,12 @@ public final class ExStopWatch extends JavaPlugin {
             return;
         }
         curPlayer = player.getUniqueId();
-        s.sendMessage(ChatColor.GREEN + "Timer is now showing to " + player.getName());
+        s.sendMessage(ChatColor.GREEN + "タイマーは " + player.getName() + "に見えています。");
     }
 
     public void stopStopwatch(CommandSender s) {
         if (!isRunning) {
-            s.sendMessage(ChatColor.RED + "タイマーはすでに止まっています");
+            s.sendMessage(ChatColor.RED + "タイマーはすでに止まっています。");
 
         } else {
             // System.out.println("stopped");
@@ -221,13 +239,28 @@ public final class ExStopWatch extends JavaPlugin {
 
     public void setEndSec (CommandSender s, String[] args) {
         if (args.length == 1) {
-            s.sendMessage(ChatColor.RED + "Specify end seconds like 40, current end seconds are " + endSec);
+            s.sendMessage(ChatColor.RED + "タイマー機能は現在無効です, 現在値は " + endSec);
+            return;
+        }
+        try {
+            //int offsetArg = Integer.parseInt(args[1]);
+            //endSec = offsetArg;
+            s.sendMessage(ChatColor.RED + "タイマー機能は現在無効のため、end値は設定できません。");
+        } catch (IllegalArgumentException e) {
+            s.sendMessage(ChatColor.RED + "数値(integer)を入力してください。");
+            return;
+        }
+    }
+
+    public void setStartSec (CommandSender s, String[] args) {
+        if (args.length == 1) {
+            s.sendMessage(ChatColor.RED + "秒数を数値(例：40)で設定してください, 現在値は " + startSec);
             return;
         }
         try {
             int offsetArg = Integer.parseInt(args[1]);
-            endSec = offsetArg;
-            s.sendMessage(ChatColor.GREEN + "終了時間を " + endSec + "で設定しました。");
+            startSec = offsetArg;
+            s.sendMessage(ChatColor.GREEN + "開始時間を " + startSec + "で設定しました。");
         } catch (IllegalArgumentException e) {
             s.sendMessage(ChatColor.RED + "数値(integer)を入力してください。");
             return;
@@ -274,7 +307,8 @@ public final class ExStopWatch extends JavaPlugin {
         } catch (ArrayIndexOutOfBoundsException whatVersionAreYouUsingException) {
             return false;
         }
-        getLogger().info("サーバーのバージョンは " + version + "です。");
+        getLogger().info("サーバーのバージョンは " + version + "です。1.10以上で稼働します。");
+//            //  we are running 1.10+ where you can use ChatMessageType
         actionbar = new ActionbarModern();
 
 //        if (version.equals("v1_7_R4")) {
@@ -300,5 +334,11 @@ public final class ExStopWatch extends JavaPlugin {
 //            actionbar = new ActionbarModern();
 //        }
         return actionbar != null;
+    }
+}
+
+class CountDownTimerTask extends TimerTask{
+    public void run(){
+
     }
 }

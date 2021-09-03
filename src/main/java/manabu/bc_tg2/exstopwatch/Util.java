@@ -1,7 +1,5 @@
 package manabu.bc_tg2.exstopwatch;
 
-//package me.ddquin;
-
 //import net.minecraft.server.v1_8_R3.IChatBaseComponent;
 //import net.minecraft.server.v1_8_R3.Packet;
 //import net.minecraft.server.v1_8_R3.PacketPlayOutChat;
